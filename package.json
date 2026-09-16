@@ -1,0 +1,21 @@
+{
+  "name": "sih26046-dev-rush-",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kalyan-2006-prog/SIH26046-DEV-RUSH-.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/kalyan-2006-prog/SIH26046-DEV-RUSH-/issues"
+  },
+  "homepage": "https://github.com/kalyan-2006-prog/SIH26046-DEV-RUSH-#readme"
+}
