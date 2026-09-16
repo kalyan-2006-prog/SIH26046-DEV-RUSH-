@@ -1,5 +1,5 @@
 // ============================================================
-// Arogya360 — Firestore Schema (TypeScript Interfaces)
+// DevRush — Firestore Schema (TypeScript Interfaces)
 // SIH26046 | AIIA Clinical Trials Dashboard
 // ALCOA+ / CDISC CDASH / HL7 FHIR R4 / DPDP aligned
 // ============================================================
