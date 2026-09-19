@@ -1,42 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [checking, setChecking] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        router.replace("/dashboard");
+      } else {
+        setChecking(false);
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  const handleLogin = async () => {
     setError("");
-    setLoading(true);
+    setSubmitting(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      router.replace("/dashboard");
+    } catch (err) {
+      console.error("Login failed:", err);
+      setError("Login failed. Check your email and password.");
+      setSubmitting(false);
     }
-  }
+  };
+
+  if (checking) return <div style={{ padding: "2rem" }}>Loading...</div>;
 
   return (
     <div style={{ padding: "2rem", maxWidth: "400px" }}>
-      <h1>Log In — DevRush CTMS</h1>
-      <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        <button type="submit" disabled={loading}>
-          {loading ? "Logging in..." : "Log In"}
+      <h1>AIIA CTMS Login</h1>
+      <div style={{ marginTop: "1rem" }}>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={{ display: "block", width: "100%", padding: "0.5rem", marginBottom: "0.75rem", color: "#000" }}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleLogin();
+          }}
+          style={{ display: "block", width: "100%", padding: "0.5rem", marginBottom: "0.75rem", color: "#000" }}
+        />
+        <button
+          onClick={handleLogin}
+          disabled={submitting}
+          style={{ padding: "0.5rem 1.25rem", cursor: "pointer" }}
+        >
+          {submitting ? "Signing in..." : "Log In"}
         </button>
-      </form>
+        {error && <p style={{ color: "#c0392b", marginTop: "0.75rem" }}>{error}</p>}
+        <p style={{ marginTop: "1rem" }}>
+          No account? <a href="/signup" style={{ textDecoration: "underline" }}>Sign up</a>
+        </p>
+      </div>
     </div>
   );
 }
