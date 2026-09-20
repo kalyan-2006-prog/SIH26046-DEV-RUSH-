@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 
 interface Participant {
@@ -52,12 +52,15 @@ export default function ParticipantDetailPage() {
         dpdpConsentGiven: false,
       });
 
-      await addDoc(collection(db, "audit_logs"), {
-        action: "CONSENT_WITHDRAWN",
-        participantId: participantId,
-        performedBy: currentUserId,
-        timestamp: serverTimestamp(),
-        details: `DPDP consent withdrawn for ${participant.name}`,
+      await fetch("/api/audit-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "CONSENT_WITHDRAWN",
+          participantId: participantId,
+          performedBy: currentUserId,
+          details: `DPDP consent withdrawn for ${participant.name}`,
+        }),
       });
 
       setParticipant({ ...participant, consentStatus: "Withdrawn", dpdpConsentGiven: false });
