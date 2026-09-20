@@ -9,6 +9,7 @@ import type { CTMSUser } from "@/lib/schema";
 import { computeTrialAlert, splitReasonsForRole } from "@/lib/alertRules";
 import SaeClockPanel from "./SaeClockPanel";
 import DataExchangePanel from "./DataExchangePanel";
+import AppShell from "@/components/AppShell";
 
 
 interface Trial {
@@ -22,6 +23,16 @@ interface Trial {
   ethicsApprovalDate?: string;
   ethicsRenewalDueDate?: string;
 }
+
+const roleMsgStyle = {
+  marginTop: 18,
+  padding: "12px 16px",
+  borderRadius: 10,
+  background: "var(--ui-brand-soft)",
+  color: "var(--ui-text)",
+  border: "1px solid var(--ui-border)",
+  fontSize: 14,
+} as const;
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -93,7 +104,13 @@ export default function DashboardPage() {
     };
   }, [user]);
 
-  if (loading) return <div style={{ padding: "2rem" }}>Loading...</div>;
+  if (loading) {
+    return (
+      <AppShell title="Loading...">
+        <p className="muted">Loading...</p>
+      </AppShell>
+    );
+  }
   if (!user) return null;
 
   const role = user.role;
@@ -105,163 +122,146 @@ export default function DashboardPage() {
   }));
   const flaggedCount = trialAlerts.filter((t) => t.alert.level !== "none").length;
 
-  const badgeStyle = (level: "red" | "yellow" | "none") => {
-    if (level === "red") {
-      return {
-        backgroundColor: "#c0392b",
-        color: "#fff",
-        padding: "0.2rem 0.6rem",
-        borderRadius: "999px",
-        fontSize: "0.75rem",
-        fontWeight: "bold" as const,
-      };
-    }
-    if (level === "yellow") {
-      return {
-        backgroundColor: "#f1c40f",
-        color: "#1a1a1a",
-        padding: "0.2rem 0.6rem",
-        borderRadius: "999px",
-        fontSize: "0.75rem",
-        fontWeight: "bold" as const,
-      };
-    }
-    return {
-      backgroundColor: "#27ae60",
-      color: "#fff",
-      padding: "0.2rem 0.6rem",
-      borderRadius: "999px",
-      fontSize: "0.75rem",
-      fontWeight: "bold" as const,
-    };
+  const alertBadgeClass = (level: "red" | "yellow" | "none") => {
+    if (level === "red") return "badge badge-red";
+    if (level === "yellow") return "badge badge-yellow";
+    return "badge badge-green";
   };
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <nav style={{ marginBottom: "1.5rem" }}>
-        <a href="/dashboard" style={{ marginRight: "1rem" }}>Dashboard</a>
-        <a href="/participants" style={{ marginRight: "1rem" }}>Participants</a>
-        <a href="/audit-logs" style={{ marginRight: "1rem" }}>Audit Logs</a>
-          <a href="/ctri-ethics" style={{ marginRight: "1rem" }}>CTRI / Ethics</a>
-        <a href="/adverse-events" style={{ marginRight: "1rem" }}>Report Event</a>
-        <a href="/adverse-events/list">Adverse Events Log</a>
-      </nav>
-      <h1>Welcome, {user.displayName}</h1>
-      <p>Role: {role}</p>
-
+    <AppShell
+      title={`Welcome, ${user.displayName}`}
+      subtitle="Portfolio overview: trials, safety and compliance at a glance"
+      userLabel={user.displayName}
+      role={role}
+    >
       {/* Role-specific summary panel */}
-      <div style={{ display: "flex", gap: "1.5rem", marginTop: "1.5rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
-        <div style={{ padding: "1rem", border: "1px solid #444", borderRadius: "8px", minWidth: "160px" }}>
-          <p style={{ margin: 0, color: "#888" }}>Active Trials</p>
-          <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: "bold" }}>{trials.length}</p>
+      <div className="grid-kpi">
+        <div className="card">
+          <div className="kpi-label">Trials</div>
+          <div className="kpi-value">{trials.length}</div>
+          <div className="kpi-note">All statuses</div>
         </div>
-        <div style={{ padding: "1rem", border: "1px solid #444", borderRadius: "8px", minWidth: "160px" }}>
-          <p style={{ margin: 0, color: "#888" }}>Total Participants</p>
-          <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: "bold" }}>{participantCount}</p>
+        <div className="card">
+          <div className="kpi-label">Total Participants</div>
+          <div className="kpi-value">{participantCount}</div>
         </div>
         {(role === "PI" || role === "PV_OFFICER" || role === "ADMIN") && (
-          <div style={{ padding: "1rem", border: "1px solid #c0392b", borderRadius: "8px", minWidth: "160px" }}>
-            <p style={{ margin: 0, color: "#888" }}>Adverse Events</p>
-            <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: "bold", color: "#c0392b" }}>
+          <div className="card" style={{ borderColor: "var(--ui-red-border)" }}>
+            <div className="kpi-label">Adverse Events</div>
+            <div className="kpi-value" style={{ color: "var(--ui-red-text)" }}>
               {adverseEventCount}
-            </p>
+            </div>
           </div>
         )}
-        <div style={{ padding: "1rem", border: "1px solid #f1c40f", borderRadius: "8px", minWidth: "160px" }}>
-          <p style={{ margin: 0, color: "#888" }}>Trials Flagged</p>
-          <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: "bold", color: "#f1c40f" }}>
+        <div className="card" style={{ borderColor: "var(--ui-yellow-border)" }}>
+          <div className="kpi-label">Trials Flagged</div>
+          <div className="kpi-value" style={{ color: "var(--ui-yellow-text)" }}>
             {flaggedCount}
-          </p>
+          </div>
+          <div className="kpi-note">Red or yellow alert</div>
         </div>
       </div>
 
       {/* Role-specific message */}
       {role === "PI" && (
-        <p style={{ color: "#2980b9" }}>
+        <p style={roleMsgStyle}>
           As Principal Investigator, you have full oversight of trial progress, participant enrollment, and safety signals across all sites.
         </p>
       )}
       {role === "COORDINATOR" && (
-        <p style={{ color: "#2980b9" }}>
+        <p style={roleMsgStyle}>
           As Coordinator, focus on participant enrollment, consent management, and day-to-day trial operations.
         </p>
       )}
       {role === "PV_OFFICER" && (
-        <p style={{ color: "#2980b9" }}>
+        <p style={roleMsgStyle}>
           As Pharmacovigilance Officer, adverse event monitoring is your primary responsibility. Review the Adverse Events Log regularly.
         </p>
       )}
       {role === "ADMIN" && (
-        <p style={{ color: "#2980b9" }}>
+        <p style={roleMsgStyle}>
           As Admin, you have full platform access including user management and audit oversight.
         </p>
       )}
       {role === "EC_MEMBER" && (
-        <p style={{ color: "#2980b9" }}>
+        <p style={roleMsgStyle}>
           As an Ethics Committee Member, your focus is trial approvals, ethics renewals, and protocol compliance. Review flagged ethics issues below.
         </p>
       )}
       {role === "DSMB_MEMBER" && (
-        <p style={{ color: "#2980b9" }}>
+        <p style={roleMsgStyle}>
           As a DSMB Member, you oversee participant safety and trial data integrity. Review adverse event trends and enrollment safety signals below.
         </p>
       )}
-      <SaeClockPanel role={role} />
-      <DataExchangePanel role={role} />
-      <h2 style={{ marginTop: "2rem" }}>Active Trials</h2>
-      <p style={{ fontSize: "0.85rem", color: "#888" }}>Click a trial to view its full details, participants, and adverse events.</p>
+
+      <div style={{ marginTop: 24 }}>
+        <SaeClockPanel role={role} />
+      </div>
+      <div style={{ marginTop: 24 }}>
+        <DataExchangePanel role={role} />
+      </div>
+
+      <h2 className="ui-section-title">Trials</h2>
+      <p className="muted" style={{ margin: "0 0 12px", fontSize: 14 }}>
+        Click a trial to view its full details, participants, and adverse events.
+      </p>
       {trialsLoading ? (
-        <p>Loading trials...</p>
+        <p className="muted">Loading trials...</p>
       ) : trials.length === 0 ? (
-        <p>No trials found.</p>
+        <div className="card">
+          <p className="muted" style={{ margin: 0 }}>No trials found.</p>
+        </div>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem" }}>
-          <thead>
-            <tr style={{ textAlign: "left", borderBottom: "2px solid #ccc" }}>
-              <th style={{ padding: "0.5rem" }}>Trial Name</th>
-              <th style={{ padding: "0.5rem" }}>Phase</th>
-              <th style={{ padding: "0.5rem" }}>Status</th>
-              <th style={{ padding: "0.5rem" }}>CTRI Status</th>
-              <th style={{ padding: "0.5rem" }}>Enrollment</th>
-              <th style={{ padding: "0.5rem" }}>Alert</th>
-            </tr>
-          </thead>
-          <tbody>
-            {trialAlerts.map(({ trial, alert }) => {
-              const { visible, routedElsewhereCount } = splitReasonsForRole(alert.reasons, role);
-              return (
-                <tr
-                  key={trial.id}
-                  onClick={() => router.push(`/dashboard/${trial.id}`)}
-                  style={{ borderBottom: "1px solid #eee", cursor: "pointer" }}
-                >
-                  <td style={{ padding: "0.5rem" }}>{trial.name}</td>
-                  <td style={{ padding: "0.5rem" }}>{trial.phase}</td>
-                  <td style={{ padding: "0.5rem" }}>{trial.status}</td>
-                  <td style={{ padding: "0.5rem" }}>{trial.ctriRegistrationStatus}</td>
-                  <td style={{ padding: "0.5rem" }}>
-                    {trial.enrollmentCurrent} / {trial.enrollmentTarget}
-                  </td>
-                  <td style={{ padding: "0.5rem" }}>
-                    <span style={badgeStyle(alert.level)}>
-                      {alert.level === "none" ? "OK" : alert.level.toUpperCase()}
-                    </span>
-                    <div style={{ fontSize: "0.75rem", color: "#888", marginTop: "0.25rem" }}>
-                      {visible.map((r) => r.message).join("; ")}
-                      {routedElsewhereCount > 0 && (
-                        <span style={{ color: "#666", fontStyle: "italic" }}>
-                          {visible.length > 0 ? " — " : ""}
-                          {routedElsewhereCount} additional issue{routedElsewhereCount > 1 ? "s" : ""} routed to other roles
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Trial Name</th>
+                <th>Phase</th>
+                <th>Status</th>
+                <th>CTRI Status</th>
+                <th>Enrollment</th>
+                <th>Alert</th>
+              </tr>
+            </thead>
+            <tbody>
+              {trialAlerts.map(({ trial, alert }) => {
+                const { visible, routedElsewhereCount } = splitReasonsForRole(alert.reasons, role);
+                return (
+                  <tr
+                    key={trial.id}
+                    onClick={() => router.push(`/dashboard/${trial.id}`)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <td style={{ fontWeight: 600 }}>{trial.name}</td>
+                    <td>{trial.phase}</td>
+                    <td>{trial.status}</td>
+                    <td>{trial.ctriRegistrationStatus}</td>
+                    <td>
+                      {trial.enrollmentCurrent} / {trial.enrollmentTarget}
+                    </td>
+                    <td>
+                      <span className={alertBadgeClass(alert.level)}>
+                        {alert.level === "none" ? "OK" : alert.level.toUpperCase()}
+                      </span>
+                      <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                        {visible.map((r) => r.message).join("; ")}
+                        {routedElsewhereCount > 0 && (
+                          <span style={{ fontStyle: "italic" }}>
+                            {visible.length > 0 ? " — " : ""}
+                            {routedElsewhereCount} additional issue{routedElsewhereCount > 1 ? "s" : ""} routed to other roles
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
-    </div>
+    </AppShell>
   );
 }
