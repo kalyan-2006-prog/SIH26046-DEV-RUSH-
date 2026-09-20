@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import AppShell from "@/components/AppShell";
 
 interface Participant {
   id: string;
@@ -118,26 +119,26 @@ export default function AdverseEventsPage() {
     }
   }
 
-  if (loading) return <div style={{ padding: "2rem" }}>Loading...</div>;
+  if (loading) {
+    return (
+      <AppShell title="Report Adverse Event">
+        <p className="muted" style={{ marginTop: 18 }}>Loading...</p>
+      </AppShell>
+    );
+  }
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <nav style={{ marginBottom: "1.5rem" }}>
-        <a href="/dashboard" style={{ marginRight: "1rem" }}>Dashboard</a>
-        <a href="/participants" style={{ marginRight: "1rem" }}>Participants</a>
-        <a href="/audit-logs" style={{ marginRight: "1rem" }}>Audit Logs</a>
-        <a href="/adverse-events" style={{ marginRight: "1rem" }}>Report Event</a>
-        <a href="/adverse-events/list">Adverse Events Log</a>
-      </nav>
-      <h1>Report Adverse Event</h1>
-
-      <form onSubmit={handleSubmit} style={{ maxWidth: "500px", marginTop: "1.5rem" }}>
-        <div style={{ marginBottom: "1rem" }}>
-          <label style={{ display: "block", marginBottom: "0.25rem" }}>Participant</label>
+    <AppShell
+      title="Report Adverse Event"
+      subtitle="Structured, MedDRA-coded reporting. Serious events (Severe / Life-threatening) start the 24-hour SAE clock on the dashboard."
+    >
+      <form onSubmit={handleSubmit} className="card" style={{ maxWidth: 640, marginTop: 18 }}>
+        <div className="field">
+          <label className="field-label">Participant</label>
           <select
+            className="input"
             value={selectedParticipant}
             onChange={(e) => setSelectedParticipant(e.target.value)}
-            style={{ width: "100%", padding: "0.5rem" }}
           >
             {participants.map((p) => (
               <option key={p.id} value={p.id}>
@@ -147,15 +148,13 @@ export default function AdverseEventsPage() {
           </select>
         </div>
 
-        <div style={{ marginBottom: "1rem" }}>
-          <label style={{ display: "block", marginBottom: "0.25rem" }}>
-            MedDRA-Coded Term
-          </label>
+        <div className="field">
+          <label className="field-label">MedDRA-Coded Term</label>
           <select
+            className="input"
             value={selectedMeddraCode}
             onChange={(e) => setSelectedMeddraCode(e.target.value)}
             required
-            style={{ width: "100%", padding: "0.5rem" }}
           >
             {meddraTerms.map((t) => (
               <option key={t.code} value={t.code}>
@@ -163,19 +162,17 @@ export default function AdverseEventsPage() {
               </option>
             ))}
           </select>
-          <p style={{ fontSize: "0.75rem", color: "#888", marginTop: "0.25rem" }}>
+          <p className="field-help">
             Select the closest matching Preferred Term. This coding step is what distinguishes structured pharmacovigilance from free-text reporting.
           </p>
         </div>
 
-        <div style={{ marginBottom: "1rem" }}>
-          <label style={{ display: "block", marginBottom: "0.25rem" }}>
-            Suspected Medication (WHODrug-Coded, optional)
-          </label>
+        <div className="field">
+          <label className="field-label">Suspected Medication (WHODrug-Coded, optional)</label>
           <select
+            className="input"
             value={selectedWhodrugCode}
             onChange={(e) => setSelectedWhodrugCode(e.target.value)}
-            style={{ width: "100%", padding: "0.5rem" }}
           >
             <option value="">None / not applicable</option>
             {whodrugTerms.map((t) => (
@@ -184,29 +181,27 @@ export default function AdverseEventsPage() {
               </option>
             ))}
           </select>
-          <p style={{ fontSize: "0.75rem", color: "#888", marginTop: "0.25rem" }}>
+          <p className="field-help">
             Demo WHODrug-style dictionary (not the licensed WHODrug Global). Links the event to a coded drug for causality review.
           </p>
         </div>
 
-        <div style={{ marginBottom: "1rem" }}>
-          <label style={{ display: "block", marginBottom: "0.25rem" }}>
-            Narrative / Additional Details (optional)
-          </label>
+        <div className="field">
+          <label className="field-label">Narrative / Additional Details (optional)</label>
           <textarea
+            className="input"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
-            style={{ width: "100%", padding: "0.5rem" }}
           />
         </div>
 
-        <div style={{ marginBottom: "1rem" }}>
-          <label style={{ display: "block", marginBottom: "0.25rem" }}>Severity</label>
+        <div className="field">
+          <label className="field-label">Severity</label>
           <select
+            className="input"
             value={severity}
             onChange={(e) => setSeverity(e.target.value)}
-            style={{ width: "100%", padding: "0.5rem" }}
           >
             <option value="Mild">Mild</option>
             <option value="Moderate">Moderate</option>
@@ -215,25 +210,16 @@ export default function AdverseEventsPage() {
           </select>
         </div>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          style={{
-            padding: "0.5rem 1rem",
-            backgroundColor: "#2980b9",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: submitting ? "not-allowed" : "pointer",
-          }}
-        >
+        <button type="submit" className="btn btn-primary" disabled={submitting}>
           {submitting ? "Submitting..." : "Submit Report"}
         </button>
 
         {successMessage && (
-          <p style={{ color: "#27ae60", marginTop: "1rem" }}>{successMessage}</p>
+          <p style={{ marginTop: 16, marginBottom: 0 }}>
+            <span className="badge badge-green">{successMessage}</span>
+          </p>
         )}
       </form>
-    </div>
+    </AppShell>
   );
 }
