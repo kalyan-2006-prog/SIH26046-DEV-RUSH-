@@ -60,15 +60,11 @@ function errText(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-const buttonStyle: React.CSSProperties = {
-  padding: "0.4rem 0.8rem",
-  border: "1px solid #999",
-  borderRadius: "4px",
-  background: "#fff",
-  color: "#111",
-  cursor: "pointer",
-  marginRight: "0.5rem",
-  marginBottom: "0.5rem",
+const subHeadingStyle: React.CSSProperties = {
+  fontSize: 15,
+  fontWeight: 650,
+  margin: "0 0 10px",
+  color: "var(--ui-text)",
 };
 
 export default function DataExchangePanel({ role }: { role: string }) {
@@ -154,26 +150,27 @@ export default function DataExchangePanel({ role }: { role: string }) {
   const rejected = result?.rejected ?? [];
 
   return (
-    <div style={{ marginTop: "2rem", padding: "1rem", border: "1px solid #ddd", borderRadius: "6px" }}>
-      <h2 style={{ marginTop: 0 }}>Data Exchange</h2>
-      <p style={{ fontSize: "0.8rem", color: "#666", marginTop: 0 }}>
+    <div className="card">
+      <h2 style={{ fontSize: 18, fontWeight: 650, margin: 0 }}>Data Exchange</h2>
+      <p className="note" style={{ margin: "8px 0 16px" }}>
         Prototype: not a full FHIR server. No FHIR profile validation. MedDRA and WHODrug are demo dictionaries.
       </p>
 
       {canImport && (
-        <div style={{ marginBottom: "1.5rem" }}>
-          <h3>Import a FHIR bundle</h3>
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={subHeadingStyle}>Import a FHIR bundle</h3>
           <input
             type="file"
             accept=".json,application/json"
+            style={{ color: "var(--ui-text)", fontSize: 14 }}
             onChange={(e) => {
               setFile(e.target.files?.[0] ?? null);
               setResult(null);
               setImportError(null);
             }}
           />
-          <div style={{ margin: "0.75rem 0" }}>
-            <label>
+          <div style={{ margin: "12px 0" }}>
+            <label style={{ color: "var(--ui-text)", fontSize: 14, cursor: "pointer" }}>
               <input
                 type="checkbox"
                 checked={checkOnly}
@@ -182,18 +179,29 @@ export default function DataExchangePanel({ role }: { role: string }) {
               Check only (do not save anything)
             </label>
           </div>
-          <button style={buttonStyle} disabled={!file || importing} onClick={runImport}>
+          <button className="btn btn-primary" disabled={!file || importing} onClick={runImport}>
             {importing ? "Working..." : checkOnly ? "Run check" : "Import and save"}
           </button>
 
           {importError && (
-            <p style={{ color: "#ff6b6b", marginTop: "0.5rem" }}>{importError}</p>
+            <p style={{ color: "var(--ui-red-text)", marginTop: 10, fontWeight: 600 }}>{importError}</p>
           )}
 
           {result && (
-            <div style={{ marginTop: "0.75rem", padding: "0.75rem", background: "#f6f6f6", color: "#111", borderRadius: "4px" }}>
-              <strong>{result.dryRun ? "CHECK ONLY: nothing was saved" : "IMPORTED: data was saved"}</strong>
-              <ul>
+            <div
+              style={{
+                marginTop: 14,
+                padding: 14,
+                background: "var(--ui-surface-2)",
+                color: "var(--ui-text)",
+                border: "1px solid var(--ui-border)",
+                borderRadius: 10,
+              }}
+            >
+              <span className={result.dryRun ? "badge badge-yellow" : "badge badge-green"}>
+                {result.dryRun ? "CHECK ONLY: nothing was saved" : "IMPORTED: data was saved"}
+              </span>
+              <ul style={{ margin: "10px 0 0", paddingLeft: 20 }}>
                 <li>Participants accepted: {result.accepted?.participants ?? 0}</li>
                 <li>Adverse events accepted: {result.accepted?.adverseEvents ?? 0}</li>
                 <li>Rejected: {rejected.length}</li>
@@ -201,11 +209,11 @@ export default function DataExchangePanel({ role }: { role: string }) {
                 {!result.dryRun && <li>Audit entry written: {result.auditLogged ? "yes" : "no"}</li>}
               </ul>
               {rejected.length > 0 && (
-                <div>
+                <div style={{ marginTop: 10 }}>
                   <strong>Rejected items:</strong>
-                  <ul>
+                  <ul style={{ margin: "6px 0 0", paddingLeft: 20 }}>
                     {rejected.map((r, i) => (
-                      <li key={i} style={{ fontSize: "0.85rem" }}>
+                      <li key={i} style={{ fontSize: 13 }}>
                         {typeof r === "string" ? r : JSON.stringify(r)}
                       </li>
                     ))}
@@ -213,9 +221,11 @@ export default function DataExchangePanel({ role }: { role: string }) {
                 </div>
               )}
               {!result.dryRun && (
-                <button style={buttonStyle} onClick={() => window.location.reload()}>
-                  Reload dashboard to refresh counts
-                </button>
+                <div style={{ marginTop: 12 }}>
+                  <button className="btn" onClick={() => window.location.reload()}>
+                    Reload dashboard to refresh counts
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -224,14 +234,32 @@ export default function DataExchangePanel({ role }: { role: string }) {
 
       {canExport && (
         <div>
-          <h3>Export data</h3>
+          <h3 style={subHeadingStyle}>Export data</h3>
           {EXPORT_GROUPS.map((group) => (
-            <div key={group.title} style={{ marginBottom: "0.5rem" }}>
-              <strong style={{ display: "inline-block", minWidth: "6rem" }}>{group.title}</strong>
+            <div
+              key={group.title}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+                marginBottom: 10,
+              }}
+            >
+              <strong
+                style={{
+                  display: "inline-block",
+                  minWidth: 96,
+                  color: "var(--ui-text)",
+                  fontSize: 14,
+                }}
+              >
+                {group.title}
+              </strong>
               {group.items.map((item) => (
                 <button
                   key={item.filename}
-                  style={buttonStyle}
+                  className="btn"
                   disabled={busyFile !== null}
                   onClick={() => runExport(item)}
                 >
@@ -241,7 +269,15 @@ export default function DataExchangePanel({ role }: { role: string }) {
             </div>
           ))}
           {exportMsg && (
-            <p style={{ color: exportMsg.ok ? "#4caf50" : "#ff6b6b" }}>{exportMsg.text}</p>
+            <p
+              style={{
+                color: exportMsg.ok ? "var(--ui-green-text)" : "var(--ui-red-text)",
+                fontWeight: 600,
+                marginTop: 8,
+              }}
+            >
+              {exportMsg.text}
+            </p>
           )}
         </div>
       )}
