@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import type { CTMSUser } from "@/lib/schema";
 import { computeTrialAlert, splitReasonsForRole } from "@/lib/alertRules";
@@ -66,6 +66,33 @@ export default function DashboardPage() {
     return () => unsubscribe();
   }, [router]);
 
+  // Live updates: dashboard numbers and trial table refresh when data changes
+  useEffect(() => {
+    if (!user) return;
+    const unsubTrials = onSnapshot(
+      collection(db, "trials"),
+      (snap) => {
+        setTrials(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Trial, "id">) })));
+      },
+      (err) => console.error("Live trials listener failed:", err)
+    );
+    const unsubParticipants = onSnapshot(
+      collection(db, "participants"),
+      (snap) => setParticipantCount(snap.size),
+      (err) => console.error("Live participants listener failed:", err)
+    );
+    const unsubEvents = onSnapshot(
+      collection(db, "adverse_events"),
+      (snap) => setAdverseEventCount(snap.size),
+      (err) => console.error("Live adverse events listener failed:", err)
+    );
+    return () => {
+      unsubTrials();
+      unsubParticipants();
+      unsubEvents();
+    };
+  }, [user]);
+
   if (loading) return <div style={{ padding: "2rem" }}>Loading...</div>;
   if (!user) return null;
 
@@ -115,6 +142,7 @@ export default function DashboardPage() {
         <a href="/dashboard" style={{ marginRight: "1rem" }}>Dashboard</a>
         <a href="/participants" style={{ marginRight: "1rem" }}>Participants</a>
         <a href="/audit-logs" style={{ marginRight: "1rem" }}>Audit Logs</a>
+          <a href="/ctri-ethics" style={{ marginRight: "1rem" }}>CTRI / Ethics</a>
         <a href="/adverse-events" style={{ marginRight: "1rem" }}>Report Event</a>
         <a href="/adverse-events/list">Adverse Events Log</a>
       </nav>
