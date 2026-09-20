@@ -6,6 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { computeTrialAlert } from "@/lib/alertRules";
+import AppShell from "@/components/AppShell";
 
 interface Trial {
   id: string;
@@ -36,6 +37,22 @@ interface AdverseEvent {
   severity: string;
   reportedBy: string;
   reportedAt: { seconds: number; nanoseconds: number } | null;
+}
+
+function alertBadgeClass(level: "red" | "yellow" | "none") {
+  if (level === "red") return "badge badge-red";
+  if (level === "yellow") return "badge badge-yellow";
+  return "badge badge-green";
+}
+
+function severityBadgeClass(severity: string) {
+  if (severity === "Severe" || severity === "Life-threatening") return "badge badge-red";
+  if (severity === "Moderate") return "badge badge-yellow";
+  return "badge badge-grey";
+}
+
+function consentBadgeClass(status: string) {
+  return status === "Active" ? "badge badge-green" : "badge badge-grey";
 }
 
 export default function TrialDrilldownPage() {
@@ -98,131 +115,134 @@ export default function TrialDrilldownPage() {
     return () => unsubscribe();
   }, [router, trialId]);
 
-  if (loading) return <div style={{ padding: "2rem" }}>Loading...</div>;
-  if (!trial) return <div style={{ padding: "2rem" }}>Trial not found.</div>;
+  if (loading) {
+    return (
+      <AppShell title="Loading...">
+        <p className="muted">Loading trial data...</p>
+      </AppShell>
+    );
+  }
+  if (!trial) {
+    return (
+      <AppShell title="Trial not found">
+        <div className="card" style={{ marginTop: 18 }}>
+          <p style={{ margin: 0 }}>Trial not found.</p>
+          <p style={{ margin: "8px 0 0" }}>
+            <a href="/dashboard" style={{ color: "var(--ui-brand)", fontWeight: 600 }}>
+              &larr; Back to Dashboard
+            </a>
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
 
   const alert = computeTrialAlert(trial);
 
-  const badgeStyle = (level: "red" | "yellow" | "none") => {
-    if (level === "red") {
-      return { backgroundColor: "#c0392b", color: "#fff", padding: "0.2rem 0.6rem", borderRadius: "999px", fontSize: "0.75rem", fontWeight: "bold" as const };
-    }
-    if (level === "yellow") {
-      return { backgroundColor: "#f1c40f", color: "#1a1a1a", padding: "0.2rem 0.6rem", borderRadius: "999px", fontSize: "0.75rem", fontWeight: "bold" as const };
-    }
-    return { backgroundColor: "#27ae60", color: "#fff", padding: "0.2rem 0.6rem", borderRadius: "999px", fontSize: "0.75rem", fontWeight: "bold" as const };
-  };
+  const facts: Array<{ label: string; value: string }> = [
+    { label: "Phase", value: String(trial.phase) },
+    { label: "Status", value: String(trial.status) },
+    { label: "CTRI Status", value: String(trial.ctriRegistrationStatus) },
+    { label: "Enrollment", value: `${trial.enrollmentCurrent} / ${trial.enrollmentTarget}` },
+    { label: "Ethics Approved", value: trial.ethicsApprovalDate || "—" },
+    { label: "Ethics Renewal Due", value: trial.ethicsRenewalDueDate || "—" },
+  ];
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <nav style={{ marginBottom: "1.5rem" }}>
-        <a href="/dashboard" style={{ marginRight: "1rem" }}>Dashboard</a>
-        <a href="/participants" style={{ marginRight: "1rem" }}>Participants</a>
-        <a href="/audit-logs" style={{ marginRight: "1rem" }}>Audit Logs</a>
-        <a href="/adverse-events" style={{ marginRight: "1rem" }}>Report Event</a>
-        <a href="/adverse-events/list">Adverse Events Log</a>
-      </nav>
+    <AppShell title={trial.name} subtitle="Trial detail">
+      <p style={{ margin: "10px 0 0" }}>
+        <a href="/dashboard" style={{ fontSize: 14, color: "var(--ui-muted)" }}>
+          &larr; Back to Dashboard
+        </a>
+      </p>
 
-      <a href="/dashboard" style={{ fontSize: "0.85rem", color: "#888" }}>&larr; Back to Dashboard</a>
-
-      <h1 style={{ marginTop: "0.5rem" }}>{trial.name}</h1>
-      <div style={{ display: "flex", gap: "1rem", alignItems: "center", marginBottom: "1.5rem" }}>
-        <span style={badgeStyle(alert.level)}>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginTop: 14 }}>
+        <span className={alertBadgeClass(alert.level)}>
           {alert.level === "none" ? "OK" : alert.level.toUpperCase()}
         </span>
-        <span style={{ color: "#888" }}>{alert.reasons.join("; ")}</span>
+        <span className="muted">{alert.reasons.join("; ")}</span>
       </div>
 
-      <div style={{ display: "flex", gap: "1.5rem", marginBottom: "2rem", flexWrap: "wrap" }}>
-        <div style={{ padding: "1rem", border: "1px solid #444", borderRadius: "8px", minWidth: "160px" }}>
-          <p style={{ margin: 0, color: "#888" }}>Phase</p>
-          <p style={{ margin: 0, fontSize: "1.25rem", fontWeight: "bold" }}>{trial.phase}</p>
-        </div>
-        <div style={{ padding: "1rem", border: "1px solid #444", borderRadius: "8px", minWidth: "160px" }}>
-          <p style={{ margin: 0, color: "#888" }}>Status</p>
-          <p style={{ margin: 0, fontSize: "1.25rem", fontWeight: "bold" }}>{trial.status}</p>
-        </div>
-        <div style={{ padding: "1rem", border: "1px solid #444", borderRadius: "8px", minWidth: "160px" }}>
-          <p style={{ margin: 0, color: "#888" }}>CTRI Status</p>
-          <p style={{ margin: 0, fontSize: "1.25rem", fontWeight: "bold" }}>{trial.ctriRegistrationStatus}</p>
-        </div>
-        <div style={{ padding: "1rem", border: "1px solid #444", borderRadius: "8px", minWidth: "160px" }}>
-          <p style={{ margin: 0, color: "#888" }}>Enrollment</p>
-          <p style={{ margin: 0, fontSize: "1.25rem", fontWeight: "bold" }}>
-            {trial.enrollmentCurrent} / {trial.enrollmentTarget}
-          </p>
-        </div>
-        <div style={{ padding: "1rem", border: "1px solid #444", borderRadius: "8px", minWidth: "160px" }}>
-          <p style={{ margin: 0, color: "#888" }}>Ethics Approved</p>
-          <p style={{ margin: 0, fontSize: "1.25rem", fontWeight: "bold" }}>
-            {trial.ethicsApprovalDate || "—"}
-          </p>
-        </div>
-        <div style={{ padding: "1rem", border: "1px solid #444", borderRadius: "8px", minWidth: "160px" }}>
-          <p style={{ margin: 0, color: "#888" }}>Ethics Renewal Due</p>
-          <p style={{ margin: 0, fontSize: "1.25rem", fontWeight: "bold" }}>
-            {trial.ethicsRenewalDueDate || "—"}
-          </p>
-        </div>
+      <div className="grid-kpi">
+        {facts.map((f) => (
+          <div className="card" key={f.label}>
+            <div className="kpi-label">{f.label}</div>
+            <div className="kpi-value" style={{ fontSize: 20 }}>{f.value}</div>
+          </div>
+        ))}
       </div>
 
-      <h2>Participants ({participants.length})</h2>
+      <h2 className="ui-section-title">Participants ({participants.length})</h2>
       {participants.length === 0 ? (
-        <p>No participants enrolled in this trial yet.</p>
+        <div className="card">
+          <p className="muted" style={{ margin: 0 }}>No participants enrolled in this trial yet.</p>
+        </div>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "2rem" }}>
-          <thead>
-            <tr style={{ textAlign: "left", borderBottom: "2px solid #ccc" }}>
-              <th style={{ padding: "0.5rem" }}>Name</th>
-              <th style={{ padding: "0.5rem" }}>Enrollment Date</th>
-              <th style={{ padding: "0.5rem" }}>Consent Status</th>
-              <th style={{ padding: "0.5rem" }}>DPDP Consent</th>
-            </tr>
-          </thead>
-          <tbody>
-            {participants.map((p) => (
-              <tr key={p.id} style={{ borderBottom: "1px solid #eee" }}>
-                <td style={{ padding: "0.5rem" }}>{p.name}</td>
-                <td style={{ padding: "0.5rem" }}>
-                  {new Date(p.enrollmentDate).toLocaleDateString()}
-                </td>
-                <td style={{ padding: "0.5rem" }}>{p.consentStatus}</td>
-                <td style={{ padding: "0.5rem" }}>{p.dpdpConsentGiven ? "Given" : "Not Given"}</td>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Enrollment Date</th>
+                <th>Consent Status</th>
+                <th>DPDP Consent</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {participants.map((p) => (
+                <tr key={p.id}>
+                  <td>{p.name}</td>
+                  <td>{new Date(p.enrollmentDate).toLocaleDateString()}</td>
+                  <td>
+                    <span className={consentBadgeClass(p.consentStatus)}>{p.consentStatus}</span>
+                  </td>
+                  <td>
+                    <span className={p.dpdpConsentGiven ? "badge badge-green" : "badge badge-yellow"}>
+                      {p.dpdpConsentGiven ? "Given" : "Not Given"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      <h2>Adverse Events ({adverseEvents.length})</h2>
+      <h2 className="ui-section-title">Adverse Events ({adverseEvents.length})</h2>
       {adverseEvents.length === 0 ? (
-        <p>No adverse events reported for this trial.</p>
+        <div className="card">
+          <p className="muted" style={{ margin: 0 }}>No adverse events reported for this trial.</p>
+        </div>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ textAlign: "left", borderBottom: "2px solid #ccc" }}>
-              <th style={{ padding: "0.5rem" }}>Reported At</th>
-              <th style={{ padding: "0.5rem" }}>Participant</th>
-              <th style={{ padding: "0.5rem" }}>Description</th>
-              <th style={{ padding: "0.5rem" }}>Severity</th>
-            </tr>
-          </thead>
-          <tbody>
-            {adverseEvents.map((ev) => (
-              <tr key={ev.id} style={{ borderBottom: "1px solid #eee" }}>
-                <td style={{ padding: "0.5rem" }}>
-                  {ev.reportedAt
-                    ? new Date(ev.reportedAt.seconds * 1000).toLocaleString()
-                    : "—"}
-                </td>
-                <td style={{ padding: "0.5rem" }}>{ev.participantName}</td>
-                <td style={{ padding: "0.5rem" }}>{ev.description}</td>
-                <td style={{ padding: "0.5rem" }}>{ev.severity}</td>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Reported At</th>
+                <th>Participant</th>
+                <th>Description</th>
+                <th>Severity</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {adverseEvents.map((ev) => (
+                <tr key={ev.id}>
+                  <td>
+                    {ev.reportedAt
+                      ? new Date(ev.reportedAt.seconds * 1000).toLocaleString()
+                      : "—"}
+                  </td>
+                  <td>{ev.participantName}</td>
+                  <td>{ev.description}</td>
+                  <td>
+                    <span className={severityBadgeClass(ev.severity)}>{ev.severity}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
-    </div>
+    </AppShell>
   );
 }
