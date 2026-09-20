@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
 import { computeSaeClock, isSeriousCandidate } from "@/lib/saeClock";
 
 interface SaeRow {
   id: string;
+  participantId: string;
   trialName: string;
   term: string;
   severity: string;
@@ -29,53 +31,92 @@ export default function SaeClockPanel({ role }: { role: string }) {
   const [rows, setRows] = useState<SaeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(() => new Date());
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setCurrentUserId(firebaseUser ? firebaseUser.uid : null);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  async function loadRows() {
+    try {
+      const [trialSnap, participantSnap, aeSnap] = await Promise.all([
+        getDocs(collection(db, "trials")),
+        getDocs(collection(db, "participants")),
+        getDocs(collection(db, "adverse_events")),
+      ]);
+
+      const trialNames = new Map<string, string>(
+        trialSnap.docs.map((d) => [d.id, (d.data() as { name?: string }).name || d.id] as [string, string])
+      );
+      const participantTrial = new Map<string, string>(
+        participantSnap.docs.map((d) => [d.id, (d.data() as { trialId?: string }).trialId || ""] as [string, string])
+      );
+
+      const list: SaeRow[] = [];
+      for (const d of aeSnap.docs) {
+        const data = d.data() as AeData;
+        if (!isSeriousCandidate(data.severity)) continue;
+        if (data.regulatorySubmittedAt) continue; // already reported
+        const reportedAt = data.reportedAt?.toDate?.();
+        if (!reportedAt) continue;
+        const participantId = data.participantId || "";
+        const trialId = participantTrial.get(participantId) || "";
+        list.push({
+          id: d.id,
+          participantId,
+          trialName: trialNames.get(trialId) || "Unknown trial",
+          term: data.meddraTerm || "Unspecified event",
+          severity: data.severity || "",
+          reportedAt,
+        });
+      }
+      setRows(list);
+    } catch (err) {
+      console.error("Failed to load SAE clock data:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (!allowed) return;
-
-    async function load() {
-      try {
-        const [trialSnap, participantSnap, aeSnap] = await Promise.all([
-          getDocs(collection(db, "trials")),
-          getDocs(collection(db, "participants")),
-          getDocs(collection(db, "adverse_events")),
-        ]);
-
-        const trialNames = new Map<string, string>(
-          trialSnap.docs.map((d) => [d.id, (d.data() as { name?: string }).name || d.id] as [string, string])
-        );
-        const participantTrial = new Map<string, string>(
-          participantSnap.docs.map((d) => [d.id, (d.data() as { trialId?: string }).trialId || ""] as [string, string])
-        );
-
-        const list: SaeRow[] = [];
-        for (const d of aeSnap.docs) {
-          const data = d.data() as AeData;
-          if (!isSeriousCandidate(data.severity)) continue;
-          if (data.regulatorySubmittedAt) continue; // already reported
-          const reportedAt = data.reportedAt?.toDate?.();
-          if (!reportedAt) continue;
-          const trialId = participantTrial.get(data.participantId || "") || "";
-          list.push({
-            id: d.id,
-            trialName: trialNames.get(trialId) || "Unknown trial",
-            term: data.meddraTerm || "Unspecified event",
-            severity: data.severity || "",
-            reportedAt,
-          });
-        }
-        setRows(list);
-      } catch (err) {
-        console.error("Failed to load SAE clock data:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    load();
+    loadRows();
     const timer = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(timer);
   }, [allowed]);
+
+  async function handleMarkSubmitted(row: SaeRow) {
+    if (!currentUserId) return;
+    setSubmittingId(row.id);
+
+    try {
+      await updateDoc(doc(db, "adverse_events", row.id), {
+        regulatorySubmittedAt: new Date(),
+      });
+
+      await fetch("/api/audit-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "SAE_REGULATORY_SUBMITTED",
+          participantId: row.participantId,
+          performedBy: currentUserId,
+          details: `Regulatory submission recorded for "${row.term}" (${row.severity}) — ${row.trialName}`,
+        }),
+      });
+
+      setRows((prev) => prev.filter((r) => r.id !== row.id));
+    } catch (err) {
+      console.error("Failed to mark SAE as submitted:", err);
+      alert("Failed to mark as submitted. Check console for details.");
+    } finally {
+      setSubmittingId(null);
+    }
+  }
 
   if (!allowed) {
     return (
@@ -107,6 +148,7 @@ export default function SaeClockPanel({ role }: { role: string }) {
               <th style={{ padding: "0.4rem" }}>Trial</th>
               <th style={{ padding: "0.4rem" }}>Severity</th>
               <th style={{ padding: "0.4rem" }}>Clock</th>
+              <th style={{ padding: "0.4rem" }}></th>
             </tr>
           </thead>
           <tbody>
@@ -128,6 +170,23 @@ export default function SaeClockPanel({ role }: { role: string }) {
                   >
                     {r.clock.label}
                   </span>
+                </td>
+                <td style={{ padding: "0.4rem" }}>
+                  <button
+                    onClick={() => handleMarkSubmitted(r)}
+                    disabled={submittingId === r.id}
+                    style={{
+                      padding: "0.3rem 0.7rem",
+                      fontSize: "0.75rem",
+                      backgroundColor: "#2980b9",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: submittingId === r.id ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {submittingId === r.id ? "Submitting..." : "Mark as submitted"}
+                  </button>
                 </td>
               </tr>
             ))}

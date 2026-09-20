@@ -6,7 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import type { CTMSUser } from "@/lib/schema";
-import { computeTrialAlert } from "@/lib/alertRules";
+import { computeTrialAlert, splitReasonsForRole } from "@/lib/alertRules";
 import SaeClockPanel from "./SaeClockPanel";
 
 
@@ -187,31 +187,38 @@ export default function DashboardPage() {
             </tr>
           </thead>
           <tbody>
-            {trialAlerts.map(({ trial, alert }) => (
-              <tr
-                key={trial.id}
-                onClick={() => router.push(`/dashboard/${trial.id}`)}
-                style={{ borderBottom: "1px solid #eee", cursor: "pointer" }}
-              >
-                <td style={{ padding: "0.5rem" }}>{trial.name}</td>
-                <td style={{ padding: "0.5rem" }}>{trial.phase}</td>
-                <td style={{ padding: "0.5rem" }}>{trial.status}</td>
-                <td style={{ padding: "0.5rem" }}>{trial.ctriRegistrationStatus}</td>
-                <td style={{ padding: "0.5rem" }}>
-                  {trial.enrollmentCurrent} / {trial.enrollmentTarget}
-                </td>
-                <td style={{ padding: "0.5rem" }}>
-                  <span style={badgeStyle(alert.level)}>
-                    {alert.level === "none" ? "OK" : alert.level.toUpperCase()}
-                  </span>
-                  {alert.reasons.length > 0 && (
+            {trialAlerts.map(({ trial, alert }) => {
+              const { visible, routedElsewhereCount } = splitReasonsForRole(alert.reasons, role);
+              return (
+                <tr
+                  key={trial.id}
+                  onClick={() => router.push(`/dashboard/${trial.id}`)}
+                  style={{ borderBottom: "1px solid #eee", cursor: "pointer" }}
+                >
+                  <td style={{ padding: "0.5rem" }}>{trial.name}</td>
+                  <td style={{ padding: "0.5rem" }}>{trial.phase}</td>
+                  <td style={{ padding: "0.5rem" }}>{trial.status}</td>
+                  <td style={{ padding: "0.5rem" }}>{trial.ctriRegistrationStatus}</td>
+                  <td style={{ padding: "0.5rem" }}>
+                    {trial.enrollmentCurrent} / {trial.enrollmentTarget}
+                  </td>
+                  <td style={{ padding: "0.5rem" }}>
+                    <span style={badgeStyle(alert.level)}>
+                      {alert.level === "none" ? "OK" : alert.level.toUpperCase()}
+                    </span>
                     <div style={{ fontSize: "0.75rem", color: "#888", marginTop: "0.25rem" }}>
-                      {alert.reasons.join("; ")}
+                      {visible.map((r) => r.message).join("; ")}
+                      {routedElsewhereCount > 0 && (
+                        <span style={{ color: "#666", fontStyle: "italic" }}>
+                          {visible.length > 0 ? " — " : ""}
+                          {routedElsewhereCount} additional issue{routedElsewhereCount > 1 ? "s" : ""} routed to other roles
+                        </span>
+                      )}
                     </div>
-                  )}
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
