@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, getDocs } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import AppShell from "@/components/AppShell";
 
 interface Participant {
   id: string;
@@ -44,47 +45,55 @@ export default function ParticipantsPage() {
     return () => unsubscribe();
   }, [router]);
 
-  if (loading) return <div style={{ padding: "2rem" }}>Loading...</div>;
+  if (loading) {
+    return (
+      <AppShell title="Participants">
+        <p className="muted" style={{ marginTop: 18 }}>Loading...</p>
+      </AppShell>
+    );
+  }
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <nav style={{ marginBottom: "1.5rem" }}>
-        <a href="/dashboard" style={{ marginRight: "1rem" }}>Dashboard</a>
-        <a href="/participants" style={{ marginRight: "1rem" }}>Participants</a>
-        <a href="/audit-logs" style={{ marginRight: "1rem" }}>Audit Logs</a>
-        <a href="/adverse-events">Adverse Events</a>
-      </nav>
-      <h1>Participants</h1>
-      <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem" }}>
-        <thead>
-          <tr style={{ textAlign: "left", borderBottom: "2px solid #ccc" }}>
-            <th style={{ padding: "0.5rem" }}>Name</th>
-            <th style={{ padding: "0.5rem" }}>Enrollment Date</th>
-            <th style={{ padding: "0.5rem" }}>Consent Status</th>
-            <th style={{ padding: "0.5rem" }}>DPDP Consent</th>
-            <th style={{ padding: "0.5rem" }}>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {participants.map((p) => (
-            <tr key={p.id} style={{ borderBottom: "1px solid #eee" }}>
-              <td style={{ padding: "0.5rem" }}>{p.name}</td>
-              <td style={{ padding: "0.5rem" }}>
-                {new Date(p.enrollmentDate).toLocaleDateString()}
-              </td>
-              <td style={{ padding: "0.5rem" }}>{p.consentStatus}</td>
-              <td style={{ padding: "0.5rem" }}>
-                {p.dpdpConsentGiven ? "Given" : "Not Given"}
-              </td>
-              <td style={{ padding: "0.5rem" }}>
-                <button onClick={() => router.push(`/participants/${p.id}`)}>
-                  View / Manage Consent
-                </button>
-              </td>
+    <AppShell
+      title="Participants"
+      subtitle={`${participants.length} enrolled across all trials. Open a participant to view or manage consent.`}
+    >
+      <div className="table-wrap" style={{ marginTop: 18 }}>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Enrollment Date</th>
+              <th>Consent Status</th>
+              <th>DPDP Consent</th>
+              <th>Action</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {participants.map((p) => (
+              <tr key={p.id}>
+                <td style={{ fontWeight: 600 }}>{p.name}</td>
+                <td>{new Date(p.enrollmentDate).toLocaleDateString()}</td>
+                <td>
+                  <span className={p.consentStatus === "Active" ? "badge badge-green" : "badge badge-grey"}>
+                    {p.consentStatus}
+                  </span>
+                </td>
+                <td>
+                  <span className={p.dpdpConsentGiven ? "badge badge-green" : "badge badge-yellow"}>
+                    {p.dpdpConsentGiven ? "Given" : "Not Given"}
+                  </span>
+                </td>
+                <td>
+                  <button className="btn" onClick={() => router.push(`/participants/${p.id}`)}>
+                    View / Manage Consent
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </AppShell>
   );
 }

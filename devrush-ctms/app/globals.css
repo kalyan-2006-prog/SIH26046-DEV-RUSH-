@@ -163,3 +163,6 @@ body {
   border: 1px solid var(--ui-yellow-border);
 }
 /* ===== END UI-REDESIGN TOKENS ===== */
+
+/* UI-SECTION-TITLE-FIX */
+.ui .ui-section-title { margin: 28px 0 10px; }

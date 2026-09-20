@@ -6,6 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { collection, getDocs } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { computeTrialAlert } from "@/lib/alertRules";
+import AppShell from "@/components/AppShell";
 
 interface Trial {
   id: string;
@@ -31,29 +32,15 @@ function daysUntil(dateStr?: string): number | null {
 
 type Tone = "red" | "yellow" | "green" | "grey";
 
-const TONES: Record<Tone, { bg: string; fg: string }> = {
-  red: { bg: "#c0392b", fg: "#ffffff" },
-  yellow: { bg: "#f1c40f", fg: "#1a1a1a" },
-  green: { bg: "#27ae60", fg: "#ffffff" },
-  grey: { bg: "#7f8c8d", fg: "#ffffff" },
+const TONE_CLASS: Record<Tone, string> = {
+  red: "badge badge-red",
+  yellow: "badge badge-yellow",
+  green: "badge badge-green",
+  grey: "badge badge-grey",
 };
 
 function Chip({ tone, text }: { tone: Tone; text: string }) {
-  return (
-    <span
-      style={{
-        backgroundColor: TONES[tone].bg,
-        color: TONES[tone].fg,
-        padding: "0.2rem 0.6rem",
-        borderRadius: "999px",
-        fontSize: "0.75rem",
-        fontWeight: "bold",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {text}
-    </span>
-  );
+  return <span className={TONE_CLASS[tone]}>{text}</span>;
 }
 
 export default function CtriEthicsPage() {
@@ -121,70 +108,49 @@ export default function CtriEthicsPage() {
   const ethicsSoon = rows.filter((r) => r.ethicsReason?.level === "yellow").length;
   const allClear = rows.filter((r) => !r.ctriReason && !r.ethicsReason).length;
 
-  const card = (label: string, value: number, border: string) => (
-    <div
-      style={{
-        padding: "1rem",
-        border: `1px solid ${border}`,
-        borderRadius: "8px",
-        minWidth: "160px",
-      }}
-    >
-      <p style={{ margin: 0, color: "#888" }}>{label}</p>
-      <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: "bold" }}>{value}</p>
+  const card = (label: string, value: number, borderVar: string, valueVar: string) => (
+    <div className="card" style={{ borderColor: `var(${borderVar})` }}>
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value" style={{ color: `var(${valueVar})` }}>{value}</div>
     </div>
   );
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <nav style={{ marginBottom: "1.5rem" }}>
-        <a href="/dashboard" style={{ marginRight: "1rem" }}>Dashboard</a>
-        <a href="/participants" style={{ marginRight: "1rem" }}>Participants</a>
-        <a href="/audit-logs" style={{ marginRight: "1rem" }}>Audit Logs</a>
-        <a href="/ctri-ethics" style={{ marginRight: "1rem" }}>CTRI / Ethics</a>
-        <a href="/adverse-events" style={{ marginRight: "1rem" }}>Report Event</a>
-        <a href="/adverse-events/list">Adverse Events Log</a>
-      </nav>
-
-      <h1>CTRI &amp; Ethics Tracker</h1>
-      <p style={{ fontSize: "0.85rem", color: "#888" }}>
-        Registration and ethics-approval status for every trial. Flags use the same rules as the
-        dashboard alert engine. Click a trial to open its details.
-      </p>
-
+    <AppShell
+      title="CTRI & Ethics Tracker"
+      subtitle="Registration and ethics-approval status for every trial. Flags use the same rules as the dashboard alert engine. Click a trial to open its details."
+    >
       {loading ? (
-        <p>Loading trials...</p>
+        <p className="muted" style={{ marginTop: 18 }}>Loading trials...</p>
       ) : error ? (
-        <p>{error}</p>
+        <div className="card" style={{ marginTop: 18, borderColor: "var(--ui-red-border)" }}>
+          <p style={{ margin: 0, color: "var(--ui-red-text)", fontWeight: 600 }}>{error}</p>
+        </div>
       ) : trials.length === 0 ? (
-        <p>No trials found.</p>
+        <div className="card" style={{ marginTop: 18 }}>
+          <p className="muted" style={{ margin: 0 }}>No trials found.</p>
+        </div>
       ) : (
         <>
-          <div
-            style={{
-              display: "flex",
-              gap: "1.5rem",
-              margin: "1.5rem 0",
-              flexWrap: "wrap",
-            }}
-          >
-            {card("CTRI issues", ctriIssues, "#c0392b")}
-            {card("Ethics overdue", ethicsOverdue, "#c0392b")}
-            {card("Ethics due soon", ethicsSoon, "#f1c40f")}
-            {card("All clear", allClear, "#27ae60")}
+          <div className="grid-kpi">
+            {card("CTRI issues", ctriIssues, "--ui-red-border", "--ui-red-text")}
+            {card("Ethics overdue", ethicsOverdue, "--ui-red-border", "--ui-red-text")}
+            {card("Ethics due soon", ethicsSoon, "--ui-yellow-border", "--ui-yellow-text")}
+            {card("All clear", allClear, "--ui-green-border", "--ui-green-text")}
           </div>
 
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <h2 className="ui-section-title">Trials, worst first</h2>
+          <div className="table-wrap">
+            <table className="table">
               <thead>
-                <tr style={{ textAlign: "left", borderBottom: "2px solid #ccc" }}>
-                  <th style={{ padding: "0.5rem" }}>Trial</th>
-                  <th style={{ padding: "0.5rem" }}>Status</th>
-                  <th style={{ padding: "0.5rem" }}>CTRI registration</th>
-                  <th style={{ padding: "0.5rem" }}>Ethics approved</th>
-                  <th style={{ padding: "0.5rem" }}>Renewal due</th>
-                  <th style={{ padding: "0.5rem" }}>Days left</th>
-                  <th style={{ padding: "0.5rem" }}>Ethics status</th>
+                <tr>
+                  <th>Trial</th>
+                  <th>Status</th>
+                  <th>CTRI registration</th>
+                  <th>Ethics approved</th>
+                  <th>Renewal due</th>
+                  <th>Days left</th>
+                  <th>Ethics status</th>
                 </tr>
               </thead>
               <tbody>
@@ -192,27 +158,27 @@ export default function CtriEthicsPage() {
                   <tr
                     key={trial.id}
                     onClick={() => router.push(`/dashboard/${trial.id}`)}
-                    style={{ borderBottom: "1px solid #eee", cursor: "pointer" }}
+                    style={{ cursor: "pointer" }}
                   >
-                    <td style={{ padding: "0.5rem" }}>{trial.name}</td>
-                    <td style={{ padding: "0.5rem" }}>{trial.status}</td>
-                    <td style={{ padding: "0.5rem" }}>
+                    <td style={{ fontWeight: 600 }}>{trial.name}</td>
+                    <td>{trial.status}</td>
+                    <td>
                       <Chip
                         tone={ctriReason ? "red" : "green"}
                         text={trial.ctriRegistrationStatus || "Not recorded"}
                       />
                       {ctriReason && (
-                        <div style={{ fontSize: "0.75rem", color: "#888", marginTop: "0.25rem" }}>
+                        <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
                           {ctriReason.message}
                         </div>
                       )}
                     </td>
-                    <td style={{ padding: "0.5rem" }}>{trial.ethicsApprovalDate || "Not recorded"}</td>
-                    <td style={{ padding: "0.5rem" }}>{trial.ethicsRenewalDueDate || "Not recorded"}</td>
-                    <td style={{ padding: "0.5rem" }}>
+                    <td>{trial.ethicsApprovalDate || "Not recorded"}</td>
+                    <td>{trial.ethicsRenewalDueDate || "Not recorded"}</td>
+                    <td>
                       {days === null ? "-" : days < 0 ? `${Math.abs(days)} overdue` : days}
                     </td>
-                    <td style={{ padding: "0.5rem" }}>
+                    <td>
                       <Chip tone={ethicsTone} text={ethicsText} />
                     </td>
                   </tr>
@@ -222,6 +188,6 @@ export default function CtriEthicsPage() {
           </div>
         </>
       )}
-    </div>
+    </AppShell>
   );
 }
