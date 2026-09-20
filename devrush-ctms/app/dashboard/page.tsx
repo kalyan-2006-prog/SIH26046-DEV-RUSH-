@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import type { CTMSUser } from "@/lib/schema";
 import { computeTrialAlert, splitReasonsForRole } from "@/lib/alertRules";
 import SaeClockPanel from "./SaeClockPanel";
+import DataExchangePanel from "./DataExchangePanel";
 
 
 interface Trial {
@@ -178,6 +179,7 @@ export default function DashboardPage() {
         </p>
       )}
       <SaeClockPanel role={role} />
+      <DataExchangePanel role={role} />
       <h2 style={{ marginTop: "2rem" }}>Active Trials</h2>
       <p style={{ fontSize: "0.85rem", color: "#888" }}>Click a trial to view its full details, participants, and adverse events.</p>
       {trialsLoading ? (
