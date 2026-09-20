@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 
 interface AuditLog {
@@ -11,8 +11,17 @@ interface AuditLog {
   action: string;
   participantId: string;
   performedBy: string;
-  timestamp: { seconds: number; nanoseconds: number } | null;
+  timestamp: { seconds: number; nanoseconds: number } | string | null;
   details: string;
+}
+
+function auditTimeMs(t: AuditLog["timestamp"]): number {
+  if (!t) return 0;
+  if (typeof t === "string") {
+    const ms = new Date(t).getTime();
+    return Number.isNaN(ms) ? 0 : ms;
+  }
+  return t.seconds * 1000;
 }
 
 export default function AuditLogsPage() {
@@ -28,13 +37,14 @@ export default function AuditLogsPage() {
       }
 
       try {
-        const q = query(collection(db, "audit_logs"), orderBy("timestamp", "desc"));
+        // Sorted newest-first in code below: Firestore would put text timestamps ahead of real dates.
+        const q = collection(db, "audit_logs");
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map((d) => ({
           id: d.id,
           ...(d.data() as Omit<AuditLog, "id">),
         }));
-        setLogs(data);
+        setLogs(data.sort((a, b) => auditTimeMs(b.timestamp) - auditTimeMs(a.timestamp)));
       } catch (err) {
         console.error("Failed to fetch audit logs:", err);
       } finally {
@@ -76,7 +86,7 @@ export default function AuditLogsPage() {
               <tr key={log.id} style={{ borderBottom: "1px solid #eee" }}>
                 <td style={{ padding: "0.5rem" }}>
                   {log.timestamp
-                    ? new Date(log.timestamp.seconds * 1000).toLocaleString()
+                    ? (typeof log.timestamp === "string" ? new Date(log.timestamp) : new Date(log.timestamp.seconds * 1000)).toLocaleString()
                     : "—"}
                 </td>
                 <td style={{ padding: "0.5rem" }}>{log.action}</td>
