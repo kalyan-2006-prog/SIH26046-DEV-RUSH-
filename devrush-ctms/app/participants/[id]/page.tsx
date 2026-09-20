@@ -7,6 +7,7 @@ import { useRouter, useParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import AppShell from "@/components/AppShell";
 
 interface Participant {
   name: string;
@@ -97,61 +98,88 @@ export default function ParticipantDetailPage() {
     }
   }
 
-  if (loading) return <div style={{ padding: "2rem" }}>Loading...</div>;
-  if (!participant) return <div style={{ padding: "2rem" }}>Participant not found.</div>;
+  if (loading) {
+    return (
+      <AppShell title="Participant">
+        <p className="muted" style={{ marginTop: 18 }}>Loading...</p>
+      </AppShell>
+    );
+  }
+  if (!participant) {
+    return (
+      <AppShell title="Participant not found">
+        <div className="card" style={{ marginTop: 18 }}>
+          <p style={{ margin: 0 }}>Participant not found.</p>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <button onClick={() => router.push("/participants")} style={{ marginBottom: "1rem" }}>
-        ← Back to Participants
-      </button>
-      <h1>{participant.name}</h1>
-      <p>Enrollment Date: {new Date(participant.enrollmentDate).toLocaleDateString()}</p>
-      <p>Consent Status: <strong>{participant.consentStatus}</strong></p>
-      <p>DPDP Consent: <strong>{participant.dpdpConsentGiven ? "Given" : "Not Given"}</strong></p>
-
-      {participant.consentStatus !== "Active" && (
-        <button
-          onClick={handleCaptureConsent}
-          disabled={capturing}
-          style={{
-            marginTop: "1rem",
-            marginRight: "0.5rem",
-            padding: "0.5rem 1rem",
-            backgroundColor: "#27ae60",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: capturing ? "not-allowed" : "pointer",
-          }}
-        >
-          {capturing ? "Capturing..." : "Capture DPDP Consent"}
+    <AppShell title={participant.name} subtitle="Participant detail and DPDP consent management">
+      <p style={{ margin: "10px 0 0" }}>
+        <button className="btn" onClick={() => router.push("/participants")}>
+          ← Back to Participants
         </button>
-      )}
+      </p>
 
-      {participant.consentStatus !== "Withdrawn" && (
-        <button
-          onClick={handleWithdrawConsent}
-          disabled={withdrawing}
-          style={{
-            marginTop: "1rem",
-            padding: "0.5rem 1rem",
-            backgroundColor: "#c0392b",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: withdrawing ? "not-allowed" : "pointer",
-          }}
-        >
-          {withdrawing ? "Withdrawing..." : "Withdraw DPDP Consent"}
-        </button>
-      )}
+      <div className="card" style={{ marginTop: 18, maxWidth: 640 }}>
+        <div className="detail-row">
+          <span className="detail-label">Enrollment Date</span>
+          <strong>{new Date(participant.enrollmentDate).toLocaleDateString()}</strong>
+        </div>
+        <div className="detail-row">
+          <span className="detail-label">Consent Status</span>
+          <span className={participant.consentStatus === "Active" ? "badge badge-green" : "badge badge-grey"}>
+            {participant.consentStatus}
+          </span>
+        </div>
+        <div className="detail-row">
+          <span className="detail-label">DPDP Consent</span>
+          <span className={participant.dpdpConsentGiven ? "badge badge-green" : "badge badge-yellow"}>
+            {participant.dpdpConsentGiven ? "Given" : "Not Given"}
+          </span>
+        </div>
 
-      {participant.consentStatus === "Withdrawn" && (
-        <p style={{ marginTop: "1rem", color: "#c0392b" }}>
-          Consent has been withdrawn for this participant. This action was recorded in the audit log.
-        </p>
-      )}
-    </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
+          {participant.consentStatus !== "Active" && (
+            <button
+              className="btn btn-success"
+              onClick={handleCaptureConsent}
+              disabled={capturing}
+            >
+              {capturing ? "Capturing..." : "Capture DPDP Consent"}
+            </button>
+          )}
+
+          {participant.consentStatus !== "Withdrawn" && (
+            <button
+              className="btn btn-danger"
+              onClick={handleWithdrawConsent}
+              disabled={withdrawing}
+            >
+              {withdrawing ? "Withdrawing..." : "Withdraw DPDP Consent"}
+            </button>
+          )}
+        </div>
+
+        {participant.consentStatus === "Withdrawn" && (
+          <p
+            style={{
+              marginTop: 16,
+              marginBottom: 0,
+              padding: "10px 14px",
+              borderRadius: 10,
+              background: "var(--ui-red-bg)",
+              color: "var(--ui-red-text)",
+              border: "1px solid var(--ui-red-border)",
+              fontSize: 14,
+            }}
+          >
+            Consent has been withdrawn for this participant. This action was recorded in the audit log.
+          </p>
+        )}
+      </div>
+    </AppShell>
   );
 }

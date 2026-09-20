@@ -166,3 +166,12 @@ body {
 
 /* UI-SECTION-TITLE-FIX */
 .ui .ui-section-title { margin: 28px 0 10px; }
+
+/* UI-BTN-VARIANTS */
+.btn-success { background: var(--ui-green-bg); color: var(--ui-green-text); border-color: var(--ui-green-border); }
+.btn-success:hover { background: var(--ui-green-bg); filter: brightness(1.1); }
+.btn-danger { background: var(--ui-red-bg); color: var(--ui-red-text); border-color: var(--ui-red-border); }
+.btn-danger:hover { background: var(--ui-red-bg); filter: brightness(1.1); }
+.detail-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--ui-border); }
+.detail-row:last-child { border-bottom: none; }
+.detail-label { color: var(--ui-muted); font-size: 14px; }
