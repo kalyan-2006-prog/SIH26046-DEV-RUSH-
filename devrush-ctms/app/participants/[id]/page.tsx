@@ -24,6 +24,7 @@ export default function ParticipantDetailPage() {
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [capturing, setCapturing] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -72,6 +73,36 @@ export default function ParticipantDetailPage() {
     }
   }
 
+  async function handleCaptureConsent() {
+    if (!participant || !currentUserId) return;
+    setCapturing(true);
+
+    try {
+      await updateDoc(doc(db, "participants", participantId), {
+        consentStatus: "Active",
+        dpdpConsentGiven: true,
+      });
+
+      await fetch("/api/audit-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "CONSENT_CAPTURED",
+          participantId: participantId,
+          performedBy: currentUserId,
+          details: `DPDP consent captured for ${participant.name}`,
+        }),
+      });
+
+      setParticipant({ ...participant, consentStatus: "Active", dpdpConsentGiven: true });
+    } catch (err) {
+      console.error("Failed to capture consent:", err);
+      alert("Failed to capture consent. Check console for details.");
+    } finally {
+      setCapturing(false);
+    }
+  }
+
   if (loading) return <div style={{ padding: "2rem" }}>Loading...</div>;
   if (!participant) return <div style={{ padding: "2rem" }}>Participant not found.</div>;
 
@@ -84,6 +115,25 @@ export default function ParticipantDetailPage() {
       <p>Enrollment Date: {new Date(participant.enrollmentDate).toLocaleDateString()}</p>
       <p>Consent Status: <strong>{participant.consentStatus}</strong></p>
       <p>DPDP Consent: <strong>{participant.dpdpConsentGiven ? "Given" : "Not Given"}</strong></p>
+
+      {participant.consentStatus !== "Active" && (
+        <button
+          onClick={handleCaptureConsent}
+          disabled={capturing}
+          style={{
+            marginTop: "1rem",
+            marginRight: "0.5rem",
+            padding: "0.5rem 1rem",
+            backgroundColor: "#27ae60",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: capturing ? "not-allowed" : "pointer",
+          }}
+        >
+          {capturing ? "Capturing..." : "Capture DPDP Consent"}
+        </button>
+      )}
 
       {participant.consentStatus !== "Withdrawn" && (
         <button
