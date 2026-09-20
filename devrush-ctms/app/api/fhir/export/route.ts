@@ -1,4 +1,5 @@
 import { adminDb } from "@/lib/firebase-admin";
+import { requireRole, ApiAuthError } from "@/lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,10 +85,10 @@ const SEVERITY: Record<string, string> = {
   "Life-threatening": "severe",
 };
 
-// NOTE: no authentication on this route yet. Fine for localhost demos.
-// Add Firebase ID-token verification before exposing it publicly.
 export async function GET(request: Request) {
   try {
+    await requireRole(request, ["PI", "ADMIN", "DATA_MANAGER", "REGULATORY"]);
+
     const base = `${new URL(request.url).origin}/api/fhir`;
 
     const [trialSnap, participantSnap, aeSnap] = await Promise.all([
@@ -226,6 +227,12 @@ export async function GET(request: Request) {
       },
     });
   } catch (err) {
+    if (err instanceof ApiAuthError) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: err.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     console.error("FHIR export failed:", err);
     return new Response(JSON.stringify({ error: "FHIR export failed. Check server logs." }), {
       status: 500,

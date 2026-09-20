@@ -1,4 +1,5 @@
 import { adminDb } from "@/lib/firebase-admin";
+import { requireRole, ApiAuthError } from "@/lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,6 +51,7 @@ function toCsv(headers: string[], rows: Row[]): string {
 // Add Firebase ID-token verification before exposing it publicly.
 export async function GET(request: Request) {
   try {
+    await requireRole(request, ["PI", "ADMIN", "DATA_MANAGER", "REGULATORY"]);
     const url = new URL(request.url);
     const domain = (url.searchParams.get("domain") || "").toLowerCase() as Domain;
     const download = url.searchParams.get("download") === "1";
@@ -151,6 +153,12 @@ export async function GET(request: Request) {
       },
     });
   } catch (err) {
+    if (err instanceof ApiAuthError) {
+      return new Response(err.message + "\n", {
+        status: err.status,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
+    }
     console.error("SDTM export failed:", err);
     return new Response("SDTM export failed. Check server logs.\n", { status: 500 });
   }
