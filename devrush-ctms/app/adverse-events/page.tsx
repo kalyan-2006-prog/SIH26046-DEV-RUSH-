@@ -17,15 +17,25 @@ interface MedDRATerm {
   socTerm: string;
 }
 
+// Field names match scripts/seed-whodrug-terms.ts. "id" is the Firestore document ID.
+interface WHODrugTerm {
+  id: string;
+  drugName: string;
+  genericName: string;
+  atcClass: string;
+}
+
 export default function AdverseEventsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [meddraTerms, setMeddraTerms] = useState<MedDRATerm[]>([]);
+  const [whodrugTerms, setWhodrugTerms] = useState<WHODrugTerm[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const [selectedParticipant, setSelectedParticipant] = useState("");
   const [selectedMeddraCode, setSelectedMeddraCode] = useState("");
+  const [selectedWhodrugCode, setSelectedWhodrugCode] = useState("");
   const [description, setDescription] = useState("");
   const [severity, setSeverity] = useState("Mild");
   const [submitting, setSubmitting] = useState(false);
@@ -54,6 +64,13 @@ export default function AdverseEventsPage() {
           .sort((a, b) => a.ptTerm.localeCompare(b.ptTerm));
         setMeddraTerms(meddraData);
         if (meddraData.length > 0) setSelectedMeddraCode(meddraData[0].code);
+
+        const whodrugSnapshot = await getDocs(collection(db, "whodrug_terms"));
+        const whodrugData = whodrugSnapshot.docs
+          .map((d) => ({ id: d.id, ...(d.data() as Omit<WHODrugTerm, "id">) }))
+          .sort((a, b) => a.drugName.localeCompare(b.drugName));
+        setWhodrugTerms(whodrugData);
+        // Medication is optional, so the default stays "" (none selected)
       } catch (err) {
         console.error("Failed to fetch form data:", err);
       } finally {
@@ -71,6 +88,7 @@ export default function AdverseEventsPage() {
     setSuccessMessage("");
 
     const chosenTerm = meddraTerms.find((t) => t.code === selectedMeddraCode);
+    const chosenDrug = whodrugTerms.find((t) => t.id === selectedWhodrugCode);
 
     try {
       await addDoc(collection(db, "adverse_events"), {
@@ -80,6 +98,10 @@ export default function AdverseEventsPage() {
         meddraCode: chosenTerm?.code || "",
         meddraTerm: chosenTerm?.ptTerm || "",
         meddraSoc: chosenTerm?.socTerm || "",
+        whodrugId: chosenDrug?.id || "",
+        whodrugName: chosenDrug?.drugName || "",
+        whodrugGeneric: chosenDrug?.genericName || "",
+        whodrugClass: chosenDrug?.atcClass || "",
         reportedBy: currentUserId,
         reportedAt: serverTimestamp(),
       });
@@ -87,6 +109,7 @@ export default function AdverseEventsPage() {
       setSuccessMessage("Adverse event reported successfully.");
       setDescription("");
       setSeverity("Mild");
+      setSelectedWhodrugCode("");
     } catch (err) {
       console.error("Failed to report adverse event:", err);
       alert("Failed to submit. Check console for details.");
@@ -142,6 +165,27 @@ export default function AdverseEventsPage() {
           </select>
           <p style={{ fontSize: "0.75rem", color: "#888", marginTop: "0.25rem" }}>
             Select the closest matching Preferred Term. This coding step is what distinguishes structured pharmacovigilance from free-text reporting.
+          </p>
+        </div>
+
+        <div style={{ marginBottom: "1rem" }}>
+          <label style={{ display: "block", marginBottom: "0.25rem" }}>
+            Suspected Medication (WHODrug-Coded, optional)
+          </label>
+          <select
+            value={selectedWhodrugCode}
+            onChange={(e) => setSelectedWhodrugCode(e.target.value)}
+            style={{ width: "100%", padding: "0.5rem" }}
+          >
+            <option value="">None / not applicable</option>
+            {whodrugTerms.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.drugName} — {t.atcClass}
+              </option>
+            ))}
+          </select>
+          <p style={{ fontSize: "0.75rem", color: "#888", marginTop: "0.25rem" }}>
+            Demo WHODrug-style dictionary (not the licensed WHODrug Global). Links the event to a coded drug for causality review.
           </p>
         </div>
 
