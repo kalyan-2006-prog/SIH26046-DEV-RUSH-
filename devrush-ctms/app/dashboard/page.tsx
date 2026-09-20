@@ -167,7 +167,17 @@ export default function DashboardPage() {
           As Admin, you have full platform access including user management and audit oversight.
         </p>
       )}
-   <SaeClockPanel role={role} />
+      {role === "EC_MEMBER" && (
+        <p style={{ color: "#2980b9" }}>
+          As an Ethics Committee Member, your focus is trial approvals, ethics renewals, and protocol compliance. Review flagged ethics issues below.
+        </p>
+      )}
+      {role === "DSMB_MEMBER" && (
+        <p style={{ color: "#2980b9" }}>
+          As a DSMB Member, you oversee participant safety and trial data integrity. Review adverse event trends and enrollment safety signals below.
+        </p>
+      )}
+      <SaeClockPanel role={role} />
       <h2 style={{ marginTop: "2rem" }}>Active Trials</h2>
       <p style={{ fontSize: "0.85rem", color: "#888" }}>Click a trial to view its full details, participants, and adverse events.</p>
       {trialsLoading ? (

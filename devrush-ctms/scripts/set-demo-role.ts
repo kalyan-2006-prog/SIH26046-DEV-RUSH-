@@ -11,7 +11,11 @@ if (getApps().length === 0) {
 const db = getFirestore();
 
 const role = process.argv[2];
-const VALID = ["PI", "COORDINATOR", "PV_OFFICER", "ADMIN"];
+const VALID = [
+  "PI", "SUB_INVESTIGATOR", "COORDINATOR", "DATA_MANAGER",
+  "MONITOR", "PV_OFFICER", "EC_MEMBER", "DSMB_MEMBER",
+  "REGULATORY", "SPONSOR", "ADMIN",
+];
 if (!VALID.includes(role)) {
   console.error("Use one of: " + VALID.join(", "));
   process.exit(1);

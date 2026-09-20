@@ -45,7 +45,7 @@ export const ROLE_ALERT_CATEGORIES: Record<string, AlertCategory[]> = {
   MONITOR: ["CTRI", "ETHICS"],
   REGULATORY: ["CTRI", "ETHICS"],
   EC_MEMBER: ["ETHICS"],
-  DSMB_MEMBER: ["ETHICS"],
+  DSMB_MEMBER: ["ENROLLMENT"],
   PV_OFFICER: [], // routed to the SAE Reporting Clock instead
   SPONSOR: ["CTRI", "ENROLLMENT", "ETHICS"],
 };
