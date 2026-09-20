@@ -8,6 +8,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { collection, getDocs, query, orderBy, doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import type { CTMSUser } from "@/lib/schema";
+import AppShell from "@/components/AppShell";
 
 interface AdverseEvent {
   id: string;
@@ -24,6 +25,12 @@ interface AdverseEvent {
 }
 
 const SIGNOFF_ROLES = ["PI", "PV_OFFICER", "ADMIN"];
+
+function severityBadgeClass(severity: string) {
+  if (severity === "Severe" || severity === "Life-threatening") return "badge badge-red";
+  if (severity === "Moderate") return "badge badge-yellow";
+  return "badge badge-grey";
+}
 
 export default function AdverseEventsListPage() {
   const router = useRouter();
@@ -110,92 +117,92 @@ export default function AdverseEventsListPage() {
     }
   }
 
-  if (loading) return <div style={{ padding: "2rem" }}>Loading...</div>;
+  if (loading) {
+    return (
+      <AppShell title="Adverse Events">
+        <p className="muted" style={{ marginTop: 18 }}>Loading...</p>
+      </AppShell>
+    );
+  }
 
   const canSignOff = SIGNOFF_ROLES.includes(role);
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <nav style={{ marginBottom: "1.5rem" }}>
-        <a href="/dashboard" style={{ marginRight: "1rem" }}>Dashboard</a>
-        <a href="/participants" style={{ marginRight: "1rem" }}>Participants</a>
-        <a href="/audit-logs" style={{ marginRight: "1rem" }}>Audit Logs</a>
-        <a href="/adverse-events" style={{ marginRight: "1rem" }}>Report Event</a>
-        <a href="/adverse-events/list">Adverse Events Log</a>
-      </nav>
-      <h1>Adverse Events</h1>
+    <AppShell
+      title="Adverse Events"
+      subtitle="All reported adverse events, newest first, with MedDRA coding (demo dictionary) and electronic sign-off."
+      role={role}
+    >
       {events.length === 0 ? (
-        <p>No adverse events reported yet.</p>
+        <div className="card" style={{ marginTop: 18 }}>
+          <p className="muted" style={{ margin: 0 }}>No adverse events reported yet.</p>
+        </div>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem" }}>
-          <thead>
-            <tr style={{ textAlign: "left", borderBottom: "2px solid #ccc" }}>
-              <th style={{ padding: "0.5rem" }}>Reported At</th>
-              <th style={{ padding: "0.5rem" }}>Participant</th>
-              <th style={{ padding: "0.5rem" }}>MedDRA Term</th>
-              <th style={{ padding: "0.5rem" }}>Narrative</th>
-              <th style={{ padding: "0.5rem" }}>Severity</th>
-              <th style={{ padding: "0.5rem" }}>Sign-off</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.map((ev) => (
-              <tr key={ev.id} style={{ borderBottom: "1px solid #eee" }}>
-                <td style={{ padding: "0.5rem" }}>
-                  {ev.reportedAt
-                    ? new Date(ev.reportedAt.seconds * 1000).toLocaleString()
-                    : "—"}
-                </td>
-                <td style={{ padding: "0.5rem" }}>{ev.participantName}</td>
-                <td style={{ padding: "0.5rem" }}>
-                  {ev.meddraTerm ? (
-                    <>
-                      <div style={{ fontWeight: "bold" }}>{ev.meddraTerm}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#888" }}>
-                        {ev.meddraSoc} ({ev.meddraCode})
-                      </div>
-                    </>
-                  ) : (
-                    <span style={{ color: "#888" }}>Not coded</span>
-                  )}
-                </td>
-                <td style={{ padding: "0.5rem" }}>{ev.description || "—"}</td>
-                <td style={{ padding: "0.5rem" }}>{ev.severity}</td>
-                <td style={{ padding: "0.5rem" }}>
-                  {ev.signedOffBy ? (
-                    <span style={{ color: "#27ae60", fontSize: "0.8rem" }}>
-                      ✓ Signed off
-                      {ev.signedOffAt && (
-                        <div style={{ fontSize: "0.7rem", color: "#888" }}>
-                          {new Date(ev.signedOffAt.seconds * 1000).toLocaleString()}
-                        </div>
-                      )}
-                    </span>
-                  ) : canSignOff ? (
-                    <button
-                      onClick={() => handleSignOff(ev)}
-                      disabled={signingId === ev.id}
-                      style={{
-                        padding: "0.3rem 0.7rem",
-                        fontSize: "0.75rem",
-                        backgroundColor: "#27ae60",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: signingId === ev.id ? "not-allowed" : "pointer",
-                      }}
-                    >
-                      {signingId === ev.id ? "Signing..." : "Sign off"}
-                    </button>
-                  ) : (
-                    <span style={{ color: "#888", fontSize: "0.75rem" }}>Pending review</span>
-                  )}
-                </td>
+        <div className="table-wrap" style={{ marginTop: 18 }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Reported At</th>
+                <th>Participant</th>
+                <th>MedDRA Term</th>
+                <th>Narrative</th>
+                <th>Severity</th>
+                <th>Sign-off</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {events.map((ev) => (
+                <tr key={ev.id}>
+                  <td>
+                    {ev.reportedAt
+                      ? new Date(ev.reportedAt.seconds * 1000).toLocaleString()
+                      : "—"}
+                  </td>
+                  <td style={{ fontWeight: 600 }}>{ev.participantName}</td>
+                  <td>
+                    {ev.meddraTerm ? (
+                      <>
+                        <div style={{ fontWeight: 700 }}>{ev.meddraTerm}</div>
+                        <div className="muted" style={{ fontSize: 12 }}>
+                          {ev.meddraSoc} ({ev.meddraCode})
+                        </div>
+                      </>
+                    ) : (
+                      <span className="badge badge-grey">Not coded</span>
+                    )}
+                  </td>
+                  <td>{ev.description || "—"}</td>
+                  <td>
+                    <span className={severityBadgeClass(ev.severity)}>{ev.severity}</span>
+                  </td>
+                  <td>
+                    {ev.signedOffBy ? (
+                      <div>
+                        <span className="badge badge-green">✓ Signed off</span>
+                        {ev.signedOffAt && (
+                          <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                            {new Date(ev.signedOffAt.seconds * 1000).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                    ) : canSignOff ? (
+                      <button
+                        className="btn btn-success"
+                        onClick={() => handleSignOff(ev)}
+                        disabled={signingId === ev.id}
+                      >
+                        {signingId === ev.id ? "Signing..." : "Sign off"}
+                      </button>
+                    ) : (
+                      <span className="badge badge-grey">Pending review</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
-    </div>
+    </AppShell>
   );
 }
