@@ -37,39 +37,78 @@ export default function LoginPage() {
     }
   };
 
-  if (checking) return <div style={{ padding: "2rem" }}>Loading...</div>;
+  if (checking) {
+    return (
+      <div className="ui" style={{ display: "grid", placeItems: "center" }}>
+        <p className="muted">Loading...</p>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding: "2rem", maxWidth: "400px" }}>
-      <h1>AIIA CTMS Login</h1>
-      <div style={{ marginTop: "1rem" }}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{ display: "block", width: "100%", padding: "0.5rem", marginBottom: "0.75rem", color: "#000" }}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleLogin();
-          }}
-          style={{ display: "block", width: "100%", padding: "0.5rem", marginBottom: "0.75rem", color: "#000" }}
-        />
+    <div className="ui" style={{ display: "grid", placeItems: "center", padding: 24 }}>
+      <div className="card" style={{ width: "100%", maxWidth: 420, padding: 28 }}>
+        <div className="ui-brand" style={{ marginBottom: 6 }}>AIIA CTMS</div>
+        <h1 style={{ fontSize: 22, fontWeight: 700 }}>AIIA CTMS Login</h1>
+        <p className="muted" style={{ margin: "4px 0 20px", fontSize: 14 }}>
+          Clinical trial and pharmacovigilance dashboard (prototype)
+        </p>
+
+        <div className="field">
+          <label className="field-label">Email</label>
+          <input
+            className="input"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="field">
+          <label className="field-label">Password</label>
+          <input
+            className="input"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleLogin();
+            }}
+          />
+        </div>
+
         <button
+          className="btn btn-primary"
           onClick={handleLogin}
           disabled={submitting}
-          style={{ padding: "0.5rem 1.25rem", cursor: "pointer" }}
+          style={{ width: "100%", justifyContent: "center" }}
         >
           {submitting ? "Signing in..." : "Log In"}
         </button>
-        {error && <p style={{ color: "#c0392b", marginTop: "0.75rem" }}>{error}</p>}
-        <p style={{ marginTop: "1rem" }}>
-          No account? <a href="/signup" style={{ textDecoration: "underline" }}>Sign up</a>
+
+        {error && (
+          <p
+            style={{
+              marginTop: 14,
+              marginBottom: 0,
+              padding: "10px 14px",
+              borderRadius: 10,
+              background: "var(--ui-red-bg)",
+              color: "var(--ui-red-text)",
+              border: "1px solid var(--ui-red-border)",
+              fontSize: 14,
+            }}
+          >
+            {error}
+          </p>
+        )}
+
+        <p className="muted" style={{ marginTop: 18, marginBottom: 0, fontSize: 14 }}>
+          No account?{" "}
+          <a href="/signup" style={{ color: "var(--ui-brand)", fontWeight: 600, textDecoration: "underline" }}>
+            Sign up
+          </a>
         </p>
       </div>
     </div>
