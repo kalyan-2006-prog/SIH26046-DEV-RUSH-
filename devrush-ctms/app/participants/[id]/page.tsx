@@ -1,4 +1,5 @@
 "use client";
+import { postAudit } from "@/lib/postAudit";
 
 import { authHeaders } from "@/lib/authHeaders";
 import { useEffect, useState } from "react";
@@ -54,15 +55,11 @@ export default function ParticipantDetailPage() {
         dpdpConsentGiven: false,
       });
 
-      await fetch("/api/audit-log", {
-        method: "POST",
-        headers: await authHeaders(),
-        body: JSON.stringify({
-          action: "CONSENT_WITHDRAWN",
-          participantId: participantId,
-          performedBy: currentUserId,
-          details: `DPDP consent withdrawn for ${participant.name}`,
-        }),
+      await postAudit(await authHeaders(), {
+        action: "CONSENT_WITHDRAWN",
+        participantId: participantId,
+        performedBy: currentUserId,
+        details: `DPDP consent withdrawn for ${participant.name}`,
       });
 
       setParticipant({ ...participant, consentStatus: "Withdrawn", dpdpConsentGiven: false });
@@ -84,15 +81,11 @@ export default function ParticipantDetailPage() {
         dpdpConsentGiven: true,
       });
 
-      await fetch("/api/audit-log", {
-        method: "POST",
-        headers: await authHeaders(),
-        body: JSON.stringify({
-          action: "CONSENT_CAPTURED",
-          participantId: participantId,
-          performedBy: currentUserId,
-          details: `DPDP consent captured for ${participant.name}`,
-        }),
+      await postAudit(await authHeaders(), {
+        action: "CONSENT_CAPTURED",
+        participantId: participantId,
+        performedBy: currentUserId,
+        details: `DPDP consent captured for ${participant.name}`,
       });
 
       setParticipant({ ...participant, consentStatus: "Active", dpdpConsentGiven: true });

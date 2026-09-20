@@ -1,4 +1,5 @@
 "use client";
+import { postAudit } from "@/lib/postAudit";
 
 import { authHeaders } from "@/lib/authHeaders";
 import { useEffect, useState } from "react";
@@ -99,15 +100,11 @@ export default function SaeClockPanel({ role }: { role: string }) {
         regulatorySubmittedAt: new Date(),
       });
 
-      await fetch("/api/audit-log", {
-        method: "POST",
-        headers: await authHeaders(),
-        body: JSON.stringify({
-          action: "SAE_REGULATORY_SUBMITTED",
-          participantId: row.participantId,
-          performedBy: currentUserId,
-          details: `Regulatory submission recorded for "${row.term}" (${row.severity}) — ${row.trialName}`,
-        }),
+      await postAudit(await authHeaders(), {
+        action: "SAE_REGULATORY_SUBMITTED",
+        participantId: row.participantId,
+        performedBy: currentUserId,
+        details: `Regulatory submission recorded for "${row.term}" (${row.severity}) — ${row.trialName}`,
       });
 
       setRows((prev) => prev.filter((r) => r.id !== row.id));

@@ -1,4 +1,5 @@
 "use client";
+import { postAudit } from "@/lib/postAudit";
 
 import { authHeaders } from "@/lib/authHeaders";
 import { useEffect, useState } from "react";
@@ -87,15 +88,11 @@ export default function AdverseEventsListPage() {
         signedOffAt: new Date(),
       });
 
-      await fetch("/api/audit-log", {
-        method: "POST",
-        headers: await authHeaders(),
-        body: JSON.stringify({
-          action: "AE_SIGNED_OFF",
-          participantId: ev.participantId,
-          performedBy: currentUserId,
-          details: `Electronic sign-off recorded for "${ev.meddraTerm || "adverse event"}" (${ev.severity}) — ${ev.participantName}`,
-        }),
+      await postAudit(await authHeaders(), {
+        action: "AE_SIGNED_OFF",
+        participantId: ev.participantId,
+        performedBy: currentUserId,
+        details: `Electronic sign-off recorded for "${ev.meddraTerm || "adverse event"}" (${ev.severity}) — ${ev.participantName}`,
       });
 
       setEvents((prev) =>
