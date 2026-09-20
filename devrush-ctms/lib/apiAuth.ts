@@ -40,3 +40,28 @@ export async function requireRole(request: Request, allowedRoles: string[]) {
 
   return { uid: decoded.uid, role };
 }
+
+/**
+ * Like requireRole, but any logged-in user with a users/{uid} record is allowed.
+ * Returns the verified uid and role. Used where every role may act (e.g. audit log).
+ */
+export async function requireUser(request: Request) {
+  const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    throw new ApiAuthError("Missing or malformed Authorization header. Expected 'Bearer <idToken>'.", 401);
+  }
+  const idToken = authHeader.slice("Bearer ".length).trim();
+
+  let decoded;
+  try {
+    decoded = await adminAuth.verifyIdToken(idToken);
+  } catch {
+    throw new ApiAuthError("Invalid or expired ID token.", 401);
+  }
+
+  const userSnap = await adminDb.collection("users").doc(decoded.uid).get();
+  if (!userSnap.exists) {
+    throw new ApiAuthError("No user record found for this account.", 403);
+  }
+  return { uid: decoded.uid, role: userSnap.data()?.role as string | undefined };
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { authHeaders } from "@/lib/authHeaders";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
@@ -88,7 +89,7 @@ export default function AdverseEventsListPage() {
 
       await fetch("/api/audit-log", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await authHeaders(),
         body: JSON.stringify({
           action: "AE_SIGNED_OFF",
           participantId: ev.participantId,

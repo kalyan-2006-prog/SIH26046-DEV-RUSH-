@@ -1,5 +1,6 @@
 "use client";
 
+import { authHeaders } from "@/lib/authHeaders";
 import { useEffect, useState } from "react";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
@@ -100,7 +101,7 @@ export default function SaeClockPanel({ role }: { role: string }) {
 
       await fetch("/api/audit-log", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await authHeaders(),
         body: JSON.stringify({
           action: "SAE_REGULATORY_SUBMITTED",
           participantId: row.participantId,

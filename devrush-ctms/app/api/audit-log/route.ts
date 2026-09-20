@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { adminDb } from "@/lib/firebase-admin";
+import { requireUser, ApiAuthError } from "@/lib/apiAuth";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { action, participantId, performedBy, details } = body;
+    // Who is really calling? Taken from the verified Firebase ID token,
+    // never from the request body, so entries cannot be forged.
+    const { uid } = await requireUser(req);
 
-    if (!action || !participantId || !performedBy || !details) {
+    const body = await req.json();
+    const { action, participantId, details } = body;
+    const performedBy = uid;
+
+    if (!action || !participantId || !details) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -52,6 +58,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ id: docRef.id, hash });
   } catch (err) {
+    if (err instanceof ApiAuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     console.error("Audit log write failed:", err);
     return NextResponse.json(
       { error: "Failed to write audit log" },

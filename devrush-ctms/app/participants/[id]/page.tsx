@@ -1,5 +1,6 @@
 "use client";
 
+import { authHeaders } from "@/lib/authHeaders";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
@@ -55,7 +56,7 @@ export default function ParticipantDetailPage() {
 
       await fetch("/api/audit-log", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await authHeaders(),
         body: JSON.stringify({
           action: "CONSENT_WITHDRAWN",
           participantId: participantId,
@@ -85,7 +86,7 @@ export default function ParticipantDetailPage() {
 
       await fetch("/api/audit-log", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await authHeaders(),
         body: JSON.stringify({
           action: "CONSENT_CAPTURED",
           participantId: participantId,
